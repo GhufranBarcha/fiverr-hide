@@ -18,12 +18,22 @@ function toggleBalanceVisibility() {
       }
     }
   });
+  
+  return balanceHidden; // Return the current state
 }
 
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Handle ping request to check if content script is ready
+  if (message.action === "ping") {
+    sendResponse({ status: "ready" });
+    return true;
+  }
+  
   if (message.action === "toggleBalance") {
-    toggleBalanceVisibility();
+    const isNowHidden = toggleBalanceVisibility();
+    sendResponse({ success: true, hidden: isNowHidden });
+    return true; // Indicates you wish to send a response asynchronously
   }
 });
 
@@ -31,6 +41,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 window.addEventListener('load', () => {
   // Uncomment the next line if you want to hide the balance automatically on page load
   // toggleBalanceVisibility();
-  
-  // Alternatively, check for user preference in chrome.storage and apply accordingly
 });
