@@ -1,4 +1,12 @@
 document.getElementById('toggleBalance').addEventListener('click', async () => {
+  toggleFeature('toggleBalance', 'Balance');
+});
+
+document.getElementById('toggleCurrency').addEventListener('click', async () => {
+  toggleFeature('toggleCurrency', 'Currency amounts');
+});
+
+async function toggleFeature(action, featureName) {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
@@ -16,13 +24,13 @@ document.getElementById('toggleBalance').addEventListener('click', async () => {
         console.log('Error:', chrome.runtime.lastError.message);
       } else {
         // Content script is running, now send the real command
-        chrome.tabs.sendMessage(tab.id, { action: "toggleBalance" }, response => {
+        chrome.tabs.sendMessage(tab.id, { action: action }, response => {
           if (chrome.runtime.lastError) {
-            document.getElementById('status').textContent = 'Error: Failed to toggle balance';
+            document.getElementById('status').textContent = `Error: Failed to toggle ${featureName.toLowerCase()}`;
             console.log('Toggle error:', chrome.runtime.lastError.message);
           } else {
             const state = response && response.hidden ? 'hidden' : 'visible';
-            document.getElementById('status').textContent = `Balance is now ${state}`;
+            document.getElementById('status').textContent = `${featureName} now ${state}`;
           }
         });
       }
@@ -31,4 +39,4 @@ document.getElementById('toggleBalance').addEventListener('click', async () => {
     document.getElementById('status').textContent = 'Error: ' + error.message;
     console.error(error);
   }
-});
+}
