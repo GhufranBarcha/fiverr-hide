@@ -65,7 +65,7 @@ function applyImmediateHiding() {
           /* Target specific money amounts in text */
           span:not(.privacy-lens-exempt):has(+ span.text-bold),
           span.text-bold {
-            filter: blur(3px) !important;
+            filter: blur(5px) !important;
             transition: filter 0.3s ease !important;
           }
         `);
@@ -152,7 +152,7 @@ function applyCorrectStyles() {
       /* Target specific money amounts in text */
       span:not(.privacy-lens-exempt):has(+ span.text-bold),
       span.text-bold {
-        filter: blur(3px) !important;
+        filter: blur(5px) !important;
         transition: filter 0.3s ease !important;
       }
     `);
@@ -172,7 +172,7 @@ function applyCorrectStyles() {
       [class*="username"], [class*="userName"],
       [data-username], [aria-label*="username"],
       [title*="username"] {
-        filter: blur(3px) !important;
+        filter: blur(5px) !important;
         transition: filter 0.3s ease !important;
       }
     `);
@@ -301,7 +301,7 @@ function toggleBalanceVisibility(forceState = null) {
         }
         
         // Apply blur effect
-        element.style.filter = "blur(3px)";
+        element.style.filter = "blur(5px)";
         element.style.transition = "filter 0.3s ease";
         
         // Tag element for reblur function to identify the type
@@ -372,9 +372,9 @@ function processTextNodesInBody() {
             // Pattern to replace prices with blurred spans
             const patternReplacer = (match) => {
               return `<span class="privacy-lens-currency" data-blur-type="balance" 
-                  style="filter: blur(3px); transition: filter 0.3s ease;"
+                  style="filter: blur(5px); transition: filter 0.3s ease;"
                   onmouseover="this.style.filter='blur(0)'" 
-                  onmouseout="this.style.filter='blur(3px)'">` 
+                  onmouseout="this.style.filter='blur(5px)'">` 
                 + match + 
               '</span>';
             };
