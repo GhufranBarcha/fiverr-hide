@@ -2,7 +2,7 @@
 
 ## Overview
 
-PrivacyLens Fiverr is a Chrome extension designed to enhance your privacy while using Fiverr. As you know fiverr doesn't have an inbuilt balance hider. Which could be pretty annoying when you want to share your fiverr account but don't want to show your earnings and client information or chat. This extension will help you hide that information with just a click.
+PrivacyLens Fiverr is a Chrome extension designed to enhance your privacy while using Fiverr. As you know fiverr doesn't have an inbuilt balance hider. Which could be pretty annoying when you don't want everyone to see your earning, client information or chat. This extension will help you hide that information with just a click. 
 
 <div align="center">
   <div style="display: flex; justify-content: center; gap: 20px;">
@@ -16,8 +16,8 @@ PrivacyLens Fiverr is a Chrome extension designed to enhance your privacy while 
 
 - **Hide Financial Information**: Blur all balance amounts and prices across all Fiverr pages
 - **Hide Usernames**: Blur client usernames throughout Fiverr
-- **Dark/Light Mode**: Toggle between themes based on your preference
-- **Hover Reveal**: Temporarily reveal hidden information by hovering over blurred elements
+- **Dark/Light Mode**: Toggle between `Light` and `Dark` themes based on your preference
+- **Hover Reveal**: Temporarily reveal hidden information by hovering over blurred elements (Still working in progress)
 
 ## Privacy in Action
 
@@ -76,5 +76,5 @@ Contributions are welcome! Feel free to submit pull requests or open issues to h
 ---
 
 <div align="center">
-  <p>Built with ♥ using GitHub Copilot + Claude 3.7 Sonnet</p>
+  <p>Built with VibeCoding with GitHub Copilot + Claude 3.7 Sonnet</p>
 </div>
