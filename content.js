@@ -6,13 +6,21 @@ let currencyHidden = false;
 const originalTextMap = new WeakMap();
 
 // Function to hide or show the balance
-function toggleBalanceVisibility() {
+function toggleBalanceVisibility(forceState = null) {
+  // If forceState is provided, use it instead of toggling
+  if (forceState !== null) {
+    balanceHidden = forceState;
+  } else {
+    balanceHidden = !balanceHidden;
+  }
+  
+  // Save state to local storage
+  localStorage.setItem('fiverr-hide-balance', balanceHidden.toString());
+  
   // Balance selector - using your existing selectors
   const balanceElements = document.querySelectorAll('.grade, .user-balance, .wallet-balance, ul.order-data > li > span');
   
-  console.log(`Found ${balanceElements.length} balance elements to toggle`);
-  
-  balanceHidden = !balanceHidden;
+  console.log(`Found ${balanceElements.length} balance elements to toggle (hidden: ${balanceHidden})`);
   
   balanceElements.forEach(element => {
     if (balanceHidden) {
@@ -29,7 +37,17 @@ function toggleBalanceVisibility() {
 }
 
 // Function to hide or show currency amounts
-function toggleCurrencyVisibility() {
+function toggleCurrencyVisibility(forceState = null) {
+  // If forceState is provided, use it instead of toggling
+  if (forceState !== null) {
+    currencyHidden = forceState;
+  } else {
+    currencyHidden = !currencyHidden;
+  }
+  
+  // Save state to local storage
+  localStorage.setItem('fiverr-hide-currency', currencyHidden.toString());
+  
   // Target all text nodes in the document
   const textWalker = document.createTreeWalker(
     document.body,
@@ -50,9 +68,7 @@ function toggleCurrencyVisibility() {
     }
   }
   
-  console.log(`Found ${nodesWithCurrency.length} text nodes with currency to toggle`);
-  
-  currencyHidden = !currencyHidden;
+  console.log(`Found ${nodesWithCurrency.length} text nodes with currency to toggle (hidden: ${currencyHidden})`);
   
   if (currencyHidden) {
     // Hide currency values
@@ -113,6 +129,34 @@ function initialize() {
   setTimeout(() => {
     notification.remove();
   }, 3000);
+  
+  // Apply saved settings from local storage
+  applySavedSettings();
+}
+
+// Apply settings saved in localStorage
+function applySavedSettings() {
+  // Check if we have saved settings
+  const savedBalanceHidden = localStorage.getItem('fiverr-hide-balance');
+  const savedCurrencyHidden = localStorage.getItem('fiverr-hide-currency');
+  
+  console.log('Applying saved settings:', { savedBalanceHidden, savedCurrencyHidden });
+  
+  // Apply balance setting if it exists
+  if (savedBalanceHidden !== null) {
+    const shouldHide = savedBalanceHidden === 'true';
+    if (shouldHide) {
+      toggleBalanceVisibility(true);
+    }
+  }
+  
+  // Apply currency setting if it exists
+  if (savedCurrencyHidden !== null) {
+    const shouldHide = savedCurrencyHidden === 'true';
+    if (shouldHide) {
+      toggleCurrencyVisibility(true);
+    }
+  }
 }
 
 // Listen for messages from the popup
@@ -121,8 +165,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   // Handle ping request to check if content script is ready
   if (message.action === "ping") {
-    console.log("Ping received, sending ready status");
-    sendResponse({ status: "ready" });
+    // Return current state along with ready status
+    const state = {
+      status: "ready",
+      balanceHidden: balanceHidden,
+      currencyHidden: currencyHidden
+    };
+    console.log("Ping received, sending ready status and state:", state);
+    sendResponse(state);
     return true;
   }
   
@@ -151,8 +201,6 @@ if (document.readyState === 'loading') {
 // Also run when window loads (for dynamically loaded content)
 window.addEventListener('load', () => {
   console.log("Window load event fired");
-  // Uncomment the next line if you want to hide the balance automatically on page load
-  // toggleBalanceVisibility();
 });
 
 // Add a mutation observer to handle dynamic content that might be loaded after the page loads
