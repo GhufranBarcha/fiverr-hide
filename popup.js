@@ -132,33 +132,13 @@ async function toggleFeature(action, featureName) {
     // Send the toggle command to the content script
     chrome.tabs.sendMessage(tab.id, { action: action }, response => {
       if (chrome.runtime.lastError) {
-        document.getElementById('status').textContent = `Warning: Content script not loaded. Please refresh page.`;
+        document.getElementById('status').textContent = `Warning: Content script not loaded. Please refresh the page.`;
         console.warn('Toggle error:', chrome.runtime.lastError.message);
         
-        // Try injecting the script if it's not already loaded
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ['content.js']
-        }).then(() => {
-          // Wait a moment for the script to initialize
-          setTimeout(() => {
-            // Try sending the message again
-            chrome.tabs.sendMessage(tab.id, { action: action }, secondResponse => {
-              if (chrome.runtime.lastError) {
-                console.error('Second attempt failed:', chrome.runtime.lastError.message);
-              } else {
-                const isNowHidden = secondResponse && secondResponse.hidden;
-                const state = isNowHidden ? 'hidden' : 'visible';
-                document.getElementById('status').textContent = `${featureName} now ${state}`;
-                document.getElementById('status').classList.add('animated');
-              }
-            });
-          }, 500);
-        }).catch(err => {
-          console.error('Failed to inject content script:', err);
-        });
-      } else {
-        const isHidden = response && response.hidden;
+        // Don't try to inject with chrome.scripting - this requires additional permissions
+        // and is causing errors in your extension
+      } else if (response) {
+        const isHidden = response.hidden;
         const state = isHidden ? 'hidden' : 'visible';
         document.getElementById('status').textContent = `${featureName} now ${state}`;
         document.getElementById('status').classList.add('animated');

@@ -1,3 +1,10 @@
+// Global variables - these need to be defined at the top
+let balanceHidden = false;
+let namesHidden = false;
+let immediateHidingStyle = null;
+let originalBalanceValues = new Map();
+let originalNameValues = new Map();
+
 // Function to apply CSS rules for hiding financial information
 function applyImmediateHiding() {
   try {
@@ -673,4 +680,219 @@ function isInIgnoredElement(element) {
   }
   
   return false;
+}
+
+// Function to remove immediate hiding style
+function removeImmediateHidingStyle() {
+  if (immediateHidingStyle && immediateHidingStyle.parentNode) {
+    immediateHidingStyle.parentNode.removeChild(immediateHidingStyle);
+    immediateHidingStyle = null;
+  }
+}
+
+// Function to temporarily unblur on hover
+function unblurTemporarily(event) {
+  try {
+    if (event && event.target) {
+      event.target.style.filter = 'blur(0)';
+    }
+  } catch (error) {
+    console.error('Error in unblur:', error);
+  }
+}
+
+// Function to reblur on mouse leave
+function reblur(event) {
+  try {
+    if (event && event.target) {
+      event.target.style.filter = 'blur(3px)';
+    }
+  } catch (error) {
+    console.error('Error in reblur:', error);
+  }
+}
+
+// Function to toggle username visibility
+function toggleNameVisibility(forceState = null) {
+  try {
+    // If forceState is provided, use it instead of toggling
+    if (forceState !== null) {
+      namesHidden = forceState;
+    } else {
+      namesHidden = !namesHidden;
+    }
+    
+    console.log(`Toggling username visibility to: ${namesHidden ? 'hidden' : 'visible'}`);
+    
+    // Save state to local storage
+    localStorage.setItem('fiverr-hide-names', namesHidden.toString());
+    
+    // Remove any immediate hiding CSS
+    removeImmediateHidingStyle();
+    
+    // Re-apply CSS with updated settings
+    applyCorrectStyles();
+    
+    if (!namesHidden) {
+      // Unhide all username elements
+      const blurredElements = document.querySelectorAll('[data-blur-type="name"]');
+      blurredElements.forEach(element => {
+        try {
+          element.style.filter = '';
+          element.style.transition = '';
+          delete element.dataset.blurType;
+          element.removeEventListener('mouseenter', unblurTemporarily);
+          element.removeEventListener('mouseleave', reblur);
+        } catch (error) {
+          console.error("Error clearing element blur:", error);
+        }
+      });
+      
+      // Clear the original values map to prevent issues with stale references
+      originalNameValues.clear();
+      
+      return namesHidden;
+    }
+    
+    // Enhanced username hiding on names
+    enhancedUsernameHiding();
+    
+    return namesHidden;
+  } catch (error) {
+    console.error("Error in toggleNameVisibility:", error);
+    return namesHidden;
+  }
+}
+
+// Enhanced function for username hiding
+function enhancedUsernameHiding(dynamicOnly = false) {
+  try {
+    // Username selectors
+    const usernameSelectors = `
+      div.tbl-row div.username,
+      div.conversation p.conversation-title,
+      div.content-container strong.display-name,
+      .display-name, .seller-display-name,
+      .conversation-description,
+      .username, .user-name, .user-info-name,
+      .seller-name, .seller-card-name, .profile-name,
+      .co-text-medium,
+      td.table-td span.co-text-medium,
+      [class*="username"], [class*="userName"],
+      [data-username], [aria-label*="username"],
+      [title*="username"]
+    `;
+    
+    const usernameElements = document.querySelectorAll(usernameSelectors);
+    console.log(`Found ${usernameElements.length} username elements to hide`);
+    
+    // Process all the matched elements
+    usernameElements.forEach(element => {
+      try {
+        // Skip already blurred elements
+        if (element.style.filter && element.style.filter.includes('blur')) {
+          return;
+        }
+        
+        // Skip elements we've processed in a previous pass if this is dynamic only
+        if (dynamicOnly) {
+          const elementKey = getElementKey(element);
+          if (originalNameValues.has(elementKey)) {
+            return;
+          }
+        }
+        
+        // Generate a unique key for this element
+        const elementKey = getElementKey(element);
+        
+        // Store original text and style if not already stored
+        if (!originalNameValues.has(elementKey)) {
+          originalNameValues.set(elementKey, {
+            element: element,
+            text: element.textContent,
+            style: element.getAttribute('style') || ''
+          });
+        }
+        
+        // Apply blur effect
+        element.style.filter = "blur(3px)";
+        element.style.transition = "filter 0.3s ease";
+        
+        // Tag element for reblur function to identify the type
+        element.dataset.blurType = 'name';
+        
+        // Add hover effect to temporarily show content
+        element.addEventListener('mouseenter', unblurTemporarily);
+        element.addEventListener('mouseleave', reblur);
+      } catch (error) {
+        console.error("Error processing username element:", error);
+      }
+    });
+  } catch (error) {
+    console.error("Error in enhancedUsernameHiding:", error);
+  }
+}
+
+// Function to apply saved settings
+function applySavedSettings() {
+  try {
+    // Check for saved settings
+    const savedBalanceHidden = localStorage.getItem('fiverr-hide-balance') === 'true';
+    const savedNamesHidden = localStorage.getItem('fiverr-hide-names') === 'true';
+    
+    console.log(`Applying saved settings: balance hidden=${savedBalanceHidden}, names hidden=${savedNamesHidden}`);
+    
+    // Apply the settings
+    if (savedBalanceHidden) {
+      toggleBalanceVisibility(true);
+    }
+    
+    if (savedNamesHidden) {
+      toggleNameVisibility(true);
+    }
+  } catch (error) {
+    console.error("Error applying saved settings:", error);
+  }
+}
+
+// Message listener for communication with popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  try {
+    console.log("Received message:", request);
+    
+    if (request.action === "ping") {
+      // Return current state
+      sendResponse({
+        balanceHidden: balanceHidden,
+        namesHidden: namesHidden
+      });
+      return true;
+    }
+    
+    if (request.action === "toggleBalance") {
+      const newState = toggleBalanceVisibility();
+      sendResponse({ hidden: newState });
+      return true;
+    }
+    
+    if (request.action === "toggleNames") {
+      const newState = toggleNameVisibility();
+      sendResponse({ hidden: newState });
+      return true;
+    }
+  } catch (error) {
+    console.error("Error handling message:", error);
+    sendResponse({ error: error.message });
+  }
+  return true;
+});
+
+// Apply immediate hiding CSS as early as possible
+applyImmediateHiding();
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initialize);
+} else {
+  initialize();
 }
