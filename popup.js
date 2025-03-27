@@ -101,6 +101,11 @@ document.getElementById('toggleCurrency').addEventListener('click', function() {
   toggleFeature('toggleCurrency', 'Currency amounts');
 });
 
+document.getElementById('toggleNames').addEventListener('click', function() {
+  this.classList.toggle('active');
+  toggleFeature('toggleNames', 'Usernames');
+});
+
 // Function to toggle features
 async function toggleFeature(action, featureName) {
   try {
@@ -167,11 +172,13 @@ async function initializeUi() {
         // Update toggle states based on current settings
         updateButtonState('toggleBalance', response.balanceHidden);
         updateButtonState('toggleCurrency', response.currencyHidden);
+        updateButtonState('toggleNames', response.namesHidden);
         
         // Show status
         const balanceState = response.balanceHidden ? 'hidden' : 'visible';
         const currencyState = response.currencyHidden ? 'hidden' : 'visible';
-        document.getElementById('status').textContent = `Balance: ${balanceState}, Currency: ${currencyState}`;
+        const namesState = response.namesHidden ? 'hidden' : 'visible';
+        document.getElementById('status').textContent = `Status: Balance (${balanceState}), Currency (${currencyState}), Names (${namesState})`;
       }
     });
   } catch (error) {

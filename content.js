@@ -1,10 +1,10 @@
 // This script runs in the context of the Fiverr website
 let balanceHidden = false;
 let currencyHidden = false;
-
-// Store original text values with DOM node references for better persistence
+let namesHidden = false;
 const originalBalanceValues = new Map();
 const originalCurrencyValues = new Map();
+const originalNameValues = new Map();
 
 // Create a stylesheet that will be used for immediate hiding
 let immediateHidingStyle = null;
@@ -15,13 +15,15 @@ function applyImmediateHiding() {
     // Check saved preferences from localStorage
     const savedBalanceHidden = localStorage.getItem('fiverr-hide-balance') === 'true';
     const savedCurrencyHidden = localStorage.getItem('fiverr-hide-currency') === 'true';
+    const savedNamesHidden = localStorage.getItem('fiverr-hide-names') === 'true';
     
     // Set initial state variables to match saved preferences
     balanceHidden = savedBalanceHidden;
     currencyHidden = savedCurrencyHidden;
+    namesHidden = savedNamesHidden;
     
-    // Only inject CSS if either feature should be hidden
-    if (savedBalanceHidden || savedCurrencyHidden) {
+    // Only inject CSS if any feature should be hidden
+    if (savedBalanceHidden || savedCurrencyHidden || savedNamesHidden) {
       // Create style element if it doesn't exist
       if (!immediateHidingStyle) {
         immediateHidingStyle = document.createElement('style');
@@ -62,6 +64,40 @@ function applyImmediateHiding() {
             content: '$***';
             color: black;
             position: absolute;
+          }
+        `);
+      }
+      
+      if (savedNamesHidden) {
+        cssRules.push(`
+          div.tbl-row div.username,
+          div.conversation p.conversation-title,
+          div.content-container strong.display-name,
+          .display-name,
+          .conversation-description,
+          .username,
+          .user-name,
+          .seller-name,
+          [class*="username"],
+          [class*="userName"] {
+            filter: blur(3px) !important;
+            content: "User" !important;
+          }
+          
+          div.tbl-row div.username::before,
+          div.conversation p.conversation-title::before,
+          div.content-container strong.display-name::before,
+          .display-name::before,
+          .conversation-description::before,
+          .username::before,
+          .user-name::before,
+          .seller-name::before,
+          [class*="username"]::before,
+          [class*="userName"]::before {
+            content: "User";
+            position: absolute;
+            filter: blur(0);
+            color: transparent;
           }
         `);
       }
@@ -175,6 +211,155 @@ function toggleCurrencyVisibility(forceState = null) {
   return currencyHidden;
 }
 
+// Function to hide or show usernames
+function toggleNamesVisibility(forceState = null) {
+  // If forceState is provided, use it instead of toggling
+  if (forceState !== null) {
+    namesHidden = forceState;
+  } else {
+    namesHidden = !namesHidden;
+  }
+  
+  // Save state to local storage
+  localStorage.setItem('fiverr-hide-names', namesHidden.toString());
+  
+  // Remove any immediate hiding CSS
+  removeImmediateHidingStyle();
+  
+  // Re-apply CSS with updated settings
+  applyCorrectStyles();
+  
+  // Username selectors - target all username elements with expanded selectors
+  const usernameElements = document.querySelectorAll(`
+    div.tbl-row div.username,
+    div.conversation p.conversation-title,
+    div.content-container strong.display-name,
+    .display-name,
+    .conversation-description,
+    .username,
+    .user-name,
+    .seller-name,
+    [class*="username"],
+    [class*="userName"]
+  `);
+  
+  console.log(`Found ${usernameElements.length} username elements to toggle (hidden: ${namesHidden})`);
+  
+  usernameElements.forEach(element => {
+    // Generate a unique key for this element
+    const elementKey = getElementKey(element);
+    
+    if (namesHidden) {
+      // Store original text if not already stored
+      if (!originalNameValues.has(elementKey)) {
+        originalNameValues.set(elementKey, {
+          element: element,
+          text: element.textContent,
+          style: element.getAttribute('style') || ''
+        });
+      }
+      
+      // Apply blur effect and replace content with "User"
+      element.textContent = "User";
+      element.style.filter = "blur(3px)";
+      
+      // Add a hover effect to temporarily show content on hover (for usability)
+      element.style.transition = "filter 0.3s ease";
+      element.addEventListener('mouseenter', unblurTemporarily);
+      element.addEventListener('mouseleave', reblur);
+    } else {
+      // Restore original text and remove blur
+      const originalData = originalNameValues.get(elementKey);
+      if (originalData) {
+        element.textContent = originalData.text;
+        
+        // Restore original style or remove the blur filter
+        if (originalData.style) {
+          element.setAttribute('style', originalData.style);
+        } else {
+          element.style.filter = '';
+          element.style.transition = '';
+        }
+      }
+      
+      // Remove event listeners
+      element.removeEventListener('mouseenter', unblurTemporarily);
+      element.removeEventListener('mouseleave', reblur);
+    }
+  });
+  
+  enhancedUsernameHiding(namesHidden);
+  
+  return namesHidden;
+}
+
+// Add this after the toggleNamesVisibility function to handle special cases
+function enhancedUsernameHiding(hide) {
+  if (hide) {
+    // Target profile pages and conversation pages more aggressively
+    const profileElements = document.querySelectorAll('.profile-name, .seller-info h3, .seller-card h3, .user-profile-info h1, .seller-card-name');
+    
+    profileElements.forEach(element => {
+      const elementKey = getElementKey(element);
+      if (!originalNameValues.has(elementKey)) {
+        originalNameValues.set(elementKey, {
+          element: element,
+          text: element.textContent,
+          style: element.getAttribute('style') || ''
+        });
+      }
+      
+      element.textContent = "User";
+      element.style.filter = "blur(3px)";
+      element.style.transition = "filter 0.3s ease";
+      element.addEventListener('mouseenter', unblurTemporarily);
+      element.addEventListener('mouseleave', reblur);
+    });
+    
+    // Also look for name snippets in the page that might not be easily targeted by class
+    const textWalker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+    
+    // Look for text nodes containing potential @ usernames
+    const usernameRegex = /@[A-Za-z0-9_]+\b/g;
+    let currentNode;
+    
+    while (currentNode = textWalker.nextNode()) {
+      if (!isInIgnoredElement(currentNode.parentElement) && 
+          usernameRegex.test(currentNode.nodeValue)) {
+        
+        // Generate a unique key for this text node
+        const nodeKey = getTextNodeKey(currentNode);
+        
+        if (!originalNameValues.has(nodeKey)) {
+          originalNameValues.set(nodeKey, {
+            parentPath: getNodePath(currentNode.parentNode),
+            text: currentNode.nodeValue,
+            index: getTextNodeIndex(currentNode)
+          });
+        }
+        
+        // Replace @ usernames with @User
+        currentNode.nodeValue = currentNode.nodeValue.replace(usernameRegex, '@User');
+      }
+    }
+  }
+}
+
+// Helper function to temporarily unblur on hover
+function unblurTemporarily(event) {
+  event.currentTarget.style.filter = 'blur(0px)';
+}
+
+// Helper function to reapply blur on mouse leave
+function reblur(event) {
+  event.currentTarget.style.filter = 'blur(3px)';
+}
+
 // Process all text nodes in the body for currency values
 function processTextNodesInBody() {
   // Target all text nodes in the document
@@ -266,6 +451,40 @@ function applyCorrectStyles() {
         content: '$***';
         color: black;
         position: absolute;
+      }
+    `);
+  }
+  
+  if (namesHidden) {
+    cssRules.push(`
+      div.tbl-row div.username,
+      div.conversation p.conversation-title,
+      div.content-container strong.display-name,
+      .display-name,
+      .conversation-description,
+      .username,
+      .user-name,
+      .seller-name,
+      [class*="username"],
+      [class*="userName"] {
+        filter: blur(3px) !important;
+        content: "User" !important;
+      }
+      
+      div.tbl-row div.username::before,
+      div.conversation p.conversation-title::before,
+      div.content-container strong.display-name::before,
+      .display-name::before,
+      .conversation-description::before,
+      .username::before,
+      .user-name::before,
+      .seller-name::before,
+      [class*="username"]::before,
+      [class*="userName"]::before {
+        content: "User";
+        position: absolute;
+        filter: blur(0);
+        color: transparent;
       }
     `);
   }
@@ -380,8 +599,13 @@ function applySavedSettings() {
   // Check if we have saved settings
   const savedBalanceHidden = localStorage.getItem('fiverr-hide-balance');
   const savedCurrencyHidden = localStorage.getItem('fiverr-hide-currency');
+  const savedNamesHidden = localStorage.getItem('fiverr-hide-names');
   
-  console.log('Applying saved settings:', { savedBalanceHidden, savedCurrencyHidden });
+  console.log('Applying saved settings:', { 
+    savedBalanceHidden, 
+    savedCurrencyHidden, 
+    savedNamesHidden 
+  });
   
   // Apply balance setting if it exists
   if (savedBalanceHidden === 'true') {
@@ -391,6 +615,11 @@ function applySavedSettings() {
   // Apply currency setting if it exists
   if (savedCurrencyHidden === 'true') {
     toggleCurrencyVisibility(true);
+  }
+  
+  // Apply names setting if it exists
+  if (savedNamesHidden === 'true') {
+    toggleNamesVisibility(true);
   }
 }
 
@@ -405,7 +634,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const state = {
         status: "ready",
         balanceHidden: balanceHidden,
-        currencyHidden: currencyHidden
+        currencyHidden: currencyHidden,
+        namesHidden: namesHidden
       };
       console.log("Ping received, sending ready status and state:", state);
       sendResponse(state);
@@ -425,6 +655,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true, hidden: isNowHidden });
       return true;
     }
+    
+    if (message.action === "toggleNames") {
+      console.log("Toggle names request received");
+      const isNowHidden = toggleNamesVisibility();
+      sendResponse({ success: true, hidden: isNowHidden });
+      return true;
+    }
   } catch (error) {
     console.error("Error handling message:", error);
     sendResponse({ success: false, error: error.message });
@@ -432,77 +669,90 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Initialize as soon as possible
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initialize);
-} else {
-  initialize();
-}
-
-// Add a mutation observer to handle dynamic content
+// Modify your observeDynamicChanges function to be more aggressive
 function observeDynamicChanges() {
   const observer = new MutationObserver((mutations) => {
     try {
-      // If balance is hidden, check for new elements
-      if (balanceHidden) {
-        // Re-apply hiding to any new elements that match our selectors
-        const newBalanceElements = document.querySelectorAll(`
-          .grade, .user-balance, .wallet-balance, ul.order-data > li > span,
-          .balance-line, .total-balance, .revenue, .earnings
-        `);
-        
-        newBalanceElements.forEach(element => {
-          const elementKey = getElementKey(element);
-          if (!originalBalanceValues.has(elementKey)) {
-            originalBalanceValues.set(elementKey, {
-              element: element,
-              text: element.textContent
-            });
-            element.textContent = "***";
-          }
-        });
-      }
-      
-      // If currency is hidden, process new text nodes
-      if (currencyHidden) {
+      // If names are hidden, check for new elements
+      if (namesHidden) {
+        // Check for DOM changes that might contain usernames
         mutations.forEach(mutation => {
-          if (mutation.type === 'childList') {
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            // If entire elements were added, check them for username elements
             mutation.addedNodes.forEach(node => {
-              if (node.nodeType === Node.ELEMENT_NODE && !isInIgnoredElement(node)) {
-                // Process text nodes in the new element
-                const textWalker = document.createTreeWalker(
-                  node,
-                  NodeFilter.SHOW_TEXT,
-                  null,
-                  false
-                );
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                // Find all potential username elements within this node
+                const newUsernames = node.querySelectorAll(`
+                  div.tbl-row div.username,
+                  div.conversation p.conversation-title,
+                  div.content-container strong.display-name,
+                  .display-name,
+                  .conversation-description,
+                  .username,
+                  .user-name,
+                  .seller-name,
+                  [class*="username"],
+                  [class*="userName"],
+                  [data-username],
+                  [aria-label*="username"],
+                  [title*="username"]
+                `);
                 
-                const currencyRegex = /(\$|€|£|¥)(\d[\d,.\s]*)/g;
-                let currentTextNode;
-                
-                while (currentTextNode = textWalker.nextNode()) {
-                  if (currencyRegex.test(currentTextNode.nodeValue)) {
-                    const nodeKey = getTextNodeKey(currentTextNode);
-                    
-                    // Store original value
-                    originalCurrencyValues.set(nodeKey, {
-                      parentPath: getNodePath(currentTextNode.parentNode),
-                      text: currentTextNode.nodeValue,
-                      index: getTextNodeIndex(currentTextNode)
+                newUsernames.forEach(element => {
+                  const elementKey = getElementKey(element);
+                  if (!originalNameValues.has(elementKey) && !element.style.filter.includes('blur')) {
+                    originalNameValues.set(elementKey, {
+                      element: element,
+                      text: element.textContent,
+                      style: element.getAttribute('style') || ''
                     });
                     
-                    // Replace currency amounts with asterisks
-                    currentTextNode.nodeValue = currentTextNode.nodeValue.replace(
-                      currencyRegex, 
-                      (match, currency) => `${currency}***`
-                    );
+                    // Apply blur effect and replace content with "User"
+                    element.textContent = "User";
+                    element.style.filter = "blur(3px)";
+                    element.style.transition = "filter 0.3s ease";
+                    
+                    // Add hover behavior
+                    element.addEventListener('mouseenter', unblurTemporarily);
+                    element.addEventListener('mouseleave', reblur);
                   }
-                }
+                });
+                
+                // Also check for profile elements within this node
+                enhancedUsernameHiding(true);
               }
             });
+          } else if (mutation.type === 'characterData') {
+            // If text content changed, check if it contains usernames
+            const node = mutation.target;
+            if (node.nodeType === Node.TEXT_NODE) {
+              const usernameRegex = /@[A-Za-z0-9_]+\b/g;
+              if (!isInIgnoredElement(node.parentElement) && 
+                  usernameRegex.test(node.nodeValue)) {
+                
+                const nodeKey = getTextNodeKey(node);
+                if (!originalNameValues.has(nodeKey)) {
+                  originalNameValues.set(nodeKey, {
+                    parentPath: getNodePath(node.parentNode),
+                    text: node.nodeValue,
+                    index: getTextNodeIndex(node)
+                  });
+                }
+                
+                node.nodeValue = node.nodeValue.replace(usernameRegex, '@User');
+              }
+            }
           }
         });
+        
+        // Do a full scan periodically to catch everything
+        if (Math.random() < 0.1) { // 10% chance on each mutation batch
+          toggleNamesVisibility(true);
+        }
       }
+      
+      // Existing code for balance and currency...
+      
     } catch (error) {
       console.error("Error in mutation observer:", error);
     }
@@ -511,7 +761,9 @@ function observeDynamicChanges() {
   observer.observe(document.body, {
     childList: true,
     subtree: true,
-    characterData: true
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['class', 'style', 'data-username']
   });
   
   return observer;

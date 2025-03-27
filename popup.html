@@ -224,7 +224,7 @@
         <div class="logo">P</div>
         <div class="title">
           <h3>PrivacyLens for Fiverr</h3>
-          <p>Control what financial info is visible</p>
+          <p>Control what info is visible</p>
         </div>
       </div>
       <div class="theme-toggle" id="themeToggle" title="Toggle light/dark theme">
@@ -257,10 +257,18 @@
     
     <div class="toggle-card" id="currencyCard">
       <div class="toggle-info">
-        <h4>Hide All Prices</h4>
+        <h4>Hide Currency Values</h4>
         <p>Mask all money amounts on page</p>
       </div>
       <div id="toggleCurrency" class="toggle-switch"></div>
+    </div>
+    
+    <div class="toggle-card" id="namesCard">
+      <div class="toggle-info">
+        <h4>Hide Usernames</h4>
+        <p>Blur all usernames for privacy</p>
+      </div>
+      <div id="toggleNames" class="toggle-switch"></div>
     </div>
     
     <div class="status-message" id="status"></div>
@@ -271,52 +279,5 @@
   </div>
   
   <script src="popup.js"></script>
-  <script>
-    // Initialize the UI when popup opens
-    document.addEventListener('DOMContentLoaded', () => {
-      initializeUi();
-      initializeThemeToggle();
-    });
-
-    // Setup theme toggle functionality with system theme detection
-    function initializeThemeToggle() {
-      const themeToggle = document.getElementById('themeToggle');
-      const moonIcon = themeToggle.querySelector('.moon');
-      const sunIcon = themeToggle.querySelector('.sun');
-      
-      // First check if user has explicitly saved a theme preference
-      const savedTheme = localStorage.getItem('privacyLens-theme');
-      
-      // If no saved preference, check system preference
-      if (!savedTheme) {
-        // Check if system prefers dark mode
-        const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        if (prefersDarkMode) {
-          document.documentElement.setAttribute('data-theme', 'dark');
-          moonIcon.style.display = 'none';
-          sunIcon.style.display = 'block';
-          localStorage.setItem('privacyLens-theme', 'dark');
-          console.log('Using system preference: dark mode');
-        } else {
-          document.documentElement.removeAttribute('data-theme');
-          moonIcon.style.display = 'block';
-          sunIcon.style.display = 'none';
-          localStorage.setItem('privacyLens-theme', 'light');
-          console.log('Using system preference: light mode');
-        }
-      } else {
-        // Use saved preference
-        if (savedTheme === 'dark') {
-          document.documentElement.setAttribute('data-theme', 'dark');
-          moonIcon.style.display = 'none';
-          sunIcon.style.display = 'block';
-        } else {
-          document.documentElement.removeAttribute('data-theme');
-          moonIcon.style.display = 'block';
-          sunIcon.style.display = 'none';
-        }
-        console.log(`Using saved theme preference: ${savedTheme} mode`);
-      }
-      
-      // Listen for system theme changes
+</body>
+</html>

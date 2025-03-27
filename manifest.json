@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "PrivacyLens for Fiverr",
+  "name": "PrivacyLens Fiverr",
   "version": "1.0",
   "description": "Enhance privacy by masking financial information on Fiverr",
   "action": {
