@@ -1,39 +1,322 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Fiverr Balance Hider</title>
-    <style>
-      body {
-        width: 200px;
-        padding: 10px;
-        font-family: Arial, sans-serif;
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PrivacyLens for Fiverr</title>
+  <style>
+    :root {
+      --primary-color: #1dbf73;
+      --primary-hover: #19a463;
+      --secondary-color: #404145;
+      --background-color: #ffffff;
+      --card-bg: #f5f5f5;
+      --toggle-height: 24px;
+      --toggle-width: 48px;
+      --toggle-radius: 12px;
+      --text-color: #404145;
+      --footer-color: #999;
+      --status-color: #666;
+      --description-color: #777;
+      --box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      --box-shadow-hover: 0 4px 8px rgba(0,0,0,0.1);
+      --border-color: #eee;
+    }
+    
+    [data-theme="dark"] {
+      --primary-color: #2ccb82;
+      --primary-hover: #1dbf73;
+      --secondary-color: #eeeeee;
+      --background-color: #121212;
+      --card-bg: #1e1e1e;
+      --text-color: #ffffff;
+      --footer-color: #888;
+      --status-color: #bbb;
+      --description-color: #aaa;
+      --box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      --box-shadow-hover: 0 4px 8px rgba(0,0,0,0.3);
+      --border-color: #333;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    }
+    
+    body {
+      width: 280px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      padding: 16px;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+    
+    .logo {
+      width: 32px;
+      height: 32px;
+      margin-right: 12px;
+      background-color: var(--primary-color);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+    
+    .title h3 {
+      font-size: 16px;
+      margin-bottom: 2px;
+      color: var(--text-color);
+    }
+    
+    .title p {
+      font-size: 12px;
+      color: var(--description-color);
+    }
+    
+    .theme-toggle {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background-color: var(--card-bg);
+      box-shadow: var(--box-shadow);
+      color: var(--text-color);
+    }
+    
+    .theme-toggle:hover {
+      box-shadow: var(--box-shadow-hover);
+      transform: scale(1.05);
+    }
+    
+    .theme-toggle svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    .toggle-card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+      box-shadow: var(--box-shadow);
+    }
+    
+    .toggle-card:hover {
+      box-shadow: var(--box-shadow-hover);
+      transform: translateY(-2px);
+    }
+    
+    .toggle-info h4 {
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: var(--text-color);
+    }
+    
+    .toggle-info p {
+      font-size: 11px;
+      color: var(--description-color);
+    }
+    
+    .toggle-switch {
+      position: relative;
+      width: var(--toggle-width);
+      height: var(--toggle-height);
+      border-radius: var(--toggle-radius);
+      background-color: #ccc;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .toggle-switch.active {
+      background-color: var(--primary-color);
+    }
+    
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: calc(var(--toggle-height) - 4px);
+      height: calc(var(--toggle-height) - 4px);
+      border-radius: 50%;
+      background-color: white;
+      transition: all 0.3s ease;
+    }
+    
+    .toggle-switch.active::after {
+      left: calc(var(--toggle-width) - var(--toggle-height) + 2px);
+    }
+    
+    .status-message {
+      margin-top: 14px;
+      padding: 10px;
+      font-size: 12px;
+      text-align: center;
+      color: var(--status-color);
+      border-top: 1px solid var(--border-color);
+    }
+    
+    .footer {
+      font-size: 10px;
+      text-align: center;
+      color: var(--footer-color);
+      margin-top: 6px;
+    }
+    
+    /* Animation for status */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .animated {
+      animation: fadeIn 0.3s ease-in;
+    }
+    
+    /* Info Badge */
+    .info-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      color: white;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-left">
+        <div class="logo">P</div>
+        <div class="title">
+          <h3>PrivacyLens for Fiverr</h3>
+          <p>Control what financial info is visible</p>
+        </div>
+      </div>
+      <div class="theme-toggle" id="themeToggle" title="Toggle light/dark theme">
+        <!-- Moon icon for dark mode (visible in light mode) -->
+        <svg class="moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <!-- Sun icon for light mode (visible in dark mode - initially hidden) -->
+        <svg class="sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </div>
+    </div>
+    
+    <div class="toggle-card" id="balanceCard">
+      <div class="toggle-info">
+        <h4>Hide Balance</h4>
+        <p>Mask your account balance & earnings</p>
+      </div>
+      <div id="toggleBalance" class="toggle-switch"></div>
+    </div>
+    
+    <div class="toggle-card" id="currencyCard">
+      <div class="toggle-info">
+        <h4>Hide All Prices</h4>
+        <p>Mask all money amounts on page</p>
+      </div>
+      <div id="toggleCurrency" class="toggle-switch"></div>
+    </div>
+    
+    <div class="status-message" id="status"></div>
+  </div>
+  
+  <div class="footer">
+    PrivacyLens v1.0 • Enhance your privacy while browsing
+  </div>
+  
+  <script src="popup.js"></script>
+  <script>
+    // Initialize the UI when popup opens
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeUi();
+      initializeThemeToggle();
+    });
+
+    // Setup theme toggle functionality with system theme detection
+    function initializeThemeToggle() {
+      const themeToggle = document.getElementById('themeToggle');
+      const moonIcon = themeToggle.querySelector('.moon');
+      const sunIcon = themeToggle.querySelector('.sun');
+      
+      // First check if user has explicitly saved a theme preference
+      const savedTheme = localStorage.getItem('privacyLens-theme');
+      
+      // If no saved preference, check system preference
+      if (!savedTheme) {
+        // Check if system prefers dark mode
+        const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        if (prefersDarkMode) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          moonIcon.style.display = 'none';
+          sunIcon.style.display = 'block';
+          localStorage.setItem('privacyLens-theme', 'dark');
+          console.log('Using system preference: dark mode');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+          moonIcon.style.display = 'block';
+          sunIcon.style.display = 'none';
+          localStorage.setItem('privacyLens-theme', 'light');
+          console.log('Using system preference: light mode');
+        }
+      } else {
+        // Use saved preference
+        if (savedTheme === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          moonIcon.style.display = 'none';
+          sunIcon.style.display = 'block';
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+          moonIcon.style.display = 'block';
+          sunIcon.style.display = 'none';
+        }
+        console.log(`Using saved theme preference: ${savedTheme} mode`);
       }
-      button {
-        width: 100%;
-        padding: 8px;
-        margin-top: 10px;
-        background-color: #1dbf73;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      button:hover {
-        background-color: #19a463;
-      }
-      #status {
-        margin-top: 10px;
-        font-size: 12px;
-        color: #666;
-        text-align: center;
-      }
-    </style>
-  </head>
-  <body>
-    <h3>Fiverr Balance Hider</h3>
-    <button id="toggleBalance">Toggle Balance Visibility</button>
-    <button id="toggleCurrency">Toggle Currency Visibility</button>
-    <div id="status"></div>
-    <script src="popup.js"></script>
-  </body>
-</html>
+      
+      // Listen for system theme changes

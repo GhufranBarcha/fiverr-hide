@@ -347,11 +347,11 @@ function isInIgnoredElement(element) {
 
 // Initialize when the DOM is ready
 function initialize() {
-  console.log("Fiverr Balance Hider: Content script initialized");
+  console.log("PrivacyLens for Fiverr: Content script initialized");
   
   // Create a small notification to confirm script loaded
   const notification = document.createElement('div');
-  notification.textContent = 'Fiverr Balance Hider active';
+  notification.textContent = 'PrivacyLens active';
   notification.style.position = 'fixed';
   notification.style.bottom = '10px';
   notification.style.right = '10px';
