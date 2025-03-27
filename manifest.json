@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "PrivacyLens Fiverr",
+  "name": "PrivacyLens for Fiverr",
   "version": "1.0",
-  "description": "Enhance privacy by masking financial information on Fiverr",
+  "description": "Enhance your privacy while browsing Fiverr by hiding balances and usernames",
+  "permissions": ["activeTab", "storage"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -11,11 +12,6 @@
       "128": "images/icon128.png"
     }
   },
-  "icons": {
-    "16": "images/icon16.png",
-    "48": "images/icon48.png",
-    "128": "images/icon128.png"
-  },
   "content_scripts": [
     {
       "matches": ["*://*.fiverr.com/*"],
@@ -23,6 +19,9 @@
       "run_at": "document_start"
     }
   ],
-  "permissions": ["activeTab", "tabs", "scripting"],
-  "host_permissions": ["*://*.fiverr.com/*"]
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  }
 }

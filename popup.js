@@ -90,15 +90,21 @@ function initializeThemeToggle() {
   });
 }
 
+// Check if we're on Fiverr before setting up event listeners
+async function checkIfOnFiverr() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tab && tab.url && tab.url.includes('fiverr.com');
+  } catch (error) {
+    console.error('Error checking if on Fiverr:', error);
+    return false;
+  }
+}
+
 // Setup event listeners for toggles
 document.getElementById('toggleBalance').addEventListener('click', function() {
   this.classList.toggle('active');
-  toggleFeature('toggleBalance', 'Balance');
-});
-
-document.getElementById('toggleCurrency').addEventListener('click', function() {
-  this.classList.toggle('active');
-  toggleFeature('toggleCurrency', 'Currency amounts');
+  toggleFeature('toggleBalance', 'Financial Info');
 });
 
 document.getElementById('toggleNames').addEventListener('click', function() {
@@ -118,11 +124,39 @@ async function toggleFeature(action, featureName) {
       return;
     }
     
+    // Save the toggle state to localStorage (as a backup in case content script fails)
+    const toggleElement = document.getElementById(action);
+    const isActive = toggleElement.classList.contains('active');
+    localStorage.setItem(`${action}-popup`, isActive.toString());
+    
     // Send the toggle command to the content script
     chrome.tabs.sendMessage(tab.id, { action: action }, response => {
       if (chrome.runtime.lastError) {
-        document.getElementById('status').textContent = `Error: Failed to toggle ${featureName.toLowerCase()}`;
-        console.log('Toggle error:', chrome.runtime.lastError.message);
+        document.getElementById('status').textContent = `Warning: Content script not loaded. Please refresh page.`;
+        console.warn('Toggle error:', chrome.runtime.lastError.message);
+        
+        // Try injecting the script if it's not already loaded
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        }).then(() => {
+          // Wait a moment for the script to initialize
+          setTimeout(() => {
+            // Try sending the message again
+            chrome.tabs.sendMessage(tab.id, { action: action }, secondResponse => {
+              if (chrome.runtime.lastError) {
+                console.error('Second attempt failed:', chrome.runtime.lastError.message);
+              } else {
+                const isNowHidden = secondResponse && secondResponse.hidden;
+                const state = isNowHidden ? 'hidden' : 'visible';
+                document.getElementById('status').textContent = `${featureName} now ${state}`;
+                document.getElementById('status').classList.add('animated');
+              }
+            });
+          }, 500);
+        }).catch(err => {
+          console.error('Failed to inject content script:', err);
+        });
       } else {
         const isHidden = response && response.hidden;
         const state = isHidden ? 'hidden' : 'visible';
@@ -154,13 +188,28 @@ function updateButtonState(buttonId, isHidden) {
 // Initialize UI based on current state
 async function initializeUi() {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // Before anything, check if we're on a Fiverr page
+    const isOnFiverr = await checkIfOnFiverr();
     
-    // Check if we're on a Fiverr page
-    if (!tab.url || !tab.url.includes('fiverr.com')) {
+    if (!isOnFiverr) {
       document.getElementById('status').textContent = 'Please navigate to Fiverr.com first';
+      document.getElementById('balanceCard').style.opacity = '0.5';
+      document.getElementById('namesCard').style.opacity = '0.5';
+      document.getElementById('toggleBalance').style.pointerEvents = 'none';
+      document.getElementById('toggleNames').style.pointerEvents = 'none';
       return;
     }
+    
+    // Try to load saved states from localStorage as a fallback
+    const savedBalanceState = localStorage.getItem('toggleBalance-popup') === 'true';
+    const savedNamesState = localStorage.getItem('toggleNames-popup') === 'true';
+    
+    // First apply the saved states just in case
+    updateButtonState('toggleBalance', savedBalanceState);
+    updateButtonState('toggleNames', savedNamesState);
+    
+    // Now try to get the actual state from the content script
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
     // Check if content script is loaded and get current state
     chrome.tabs.sendMessage(tab.id, { action: "ping" }, response => {
@@ -171,14 +220,12 @@ async function initializeUi() {
       } else if (response) {
         // Update toggle states based on current settings
         updateButtonState('toggleBalance', response.balanceHidden);
-        updateButtonState('toggleCurrency', response.currencyHidden);
         updateButtonState('toggleNames', response.namesHidden);
         
         // Show status
         const balanceState = response.balanceHidden ? 'hidden' : 'visible';
-        const currencyState = response.currencyHidden ? 'hidden' : 'visible';
         const namesState = response.namesHidden ? 'hidden' : 'visible';
-        document.getElementById('status').textContent = `Status: Balance (${balanceState}), Currency (${currencyState}), Names (${namesState})`;
+        document.getElementById('status').textContent = `Status: Financial Info (${balanceState}), Names (${namesState})`;
       }
     });
   } catch (error) {
